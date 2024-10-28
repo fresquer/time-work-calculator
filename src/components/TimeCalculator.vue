@@ -6,19 +6,26 @@ const formattedCurrentTime = currentTime.toTimeString().substring(0, 5);
 
 const startTime = ref(formattedCurrentTime);
 const breakDuration = ref(30);
-const workDuration = ref(8);
+const workDuration = ref(8.5); // 8.5 hours = 8 hours and 30 minutes
 
 const endTime = computed(() => {
   const [hours, minutes] = startTime.value.split(':').map(Number);
   const date = new Date();
   date.setHours(hours, minutes);
 
-  // Add work hours plus break duration
-  date.setMinutes(
-    date.getMinutes() + workDuration.value * 60 + breakDuration.value
-  );
+  // Convert decimal hours to total minutes and add break duration
+  const workMinutes = Math.floor(workDuration.value * 60);
+  const totalMinutes = workMinutes + breakDuration.value;
+  date.setMinutes(date.getMinutes() + totalMinutes);
 
   return date.toTimeString().substring(0, 5);
+});
+
+// Format work duration for display
+const formattedWorkDuration = computed(() => {
+  const hours = Math.floor(workDuration.value);
+  const minutes = Math.round((workDuration.value - hours) * 60);
+  return `${hours}h ${minutes}m`;
 });
 </script>
 
@@ -40,20 +47,21 @@ const endTime = computed(() => {
 
       <!-- Work Duration Input -->
       <div class="space-y-2">
-        <label
-          for="workDuration"
-          class="block text-sm font-medium text-gray-700"
-        >
+        <label for="workDuration" class="block text-sm font-medium text-gray-700">
           Work Duration (hours)
         </label>
         <input
           type="number"
           id="workDuration"
           v-model="workDuration"
-          min="1"
+          min="0"
           max="24"
+          step="0.25"
           class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         />
+        <p class="text-sm text-gray-500 mt-1">
+          Use decimals for partial hours (e.g., 8.5 for 8h 30m)
+        </p>
       </div>
 
       <!-- Break Duration Input -->
@@ -81,7 +89,7 @@ const endTime = computed(() => {
         </h2>
         <p class="mt-2 text-sm text-gray-600">
           Including {{ breakDuration }} minutes break after
-          {{ workDuration }} hours of work
+          {{ formattedWorkDuration }} of work
         </p>
       </div>
     </div>
