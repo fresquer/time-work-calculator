@@ -1,19 +1,20 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 
 const currentTime = new Date();
 const formattedCurrentTime = currentTime.toTimeString().substring(0, 5);
 
 const startTime = ref(formattedCurrentTime);
 const breakDuration = ref(30);
-const workDuration = ref(8.5); // 8.5 hours = 8 hours and 30 minutes
+const workDuration = ref(8.5);
+const remainingTime = ref('');
+let timerInterval: number;
 
 const endTime = computed(() => {
   const [hours, minutes] = startTime.value.split(':').map(Number);
   const date = new Date();
   date.setHours(hours, minutes);
 
-  // Convert decimal hours to total minutes and add break duration
   const workMinutes = Math.floor(workDuration.value * 60);
   const totalMinutes = workMinutes + breakDuration.value;
   date.setMinutes(date.getMinutes() + totalMinutes);
@@ -21,11 +22,38 @@ const endTime = computed(() => {
   return date.toTimeString().substring(0, 5);
 });
 
-// Format work duration for display
 const formattedWorkDuration = computed(() => {
   const hours = Math.floor(workDuration.value);
   const minutes = Math.round((workDuration.value - hours) * 60);
   return `${hours}h ${minutes}m`;
+});
+
+const updateRemainingTime = () => {
+  const now = new Date();
+  const [endHours, endMinutes] = endTime.value.split(':').map(Number);
+  const end = new Date();
+  end.setHours(endHours, endMinutes, 0);
+
+  if (now > end) {
+    remainingTime.value = 'Work day completed!';
+    return;
+  }
+
+  const diff = end.getTime() - now.getTime();
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+  remainingTime.value = `${hours}h ${minutes}m ${seconds}s`;
+};
+
+onMounted(() => {
+  updateRemainingTime();
+  timerInterval = setInterval(updateRemainingTime, 1000);
+});
+
+onUnmounted(() => {
+  clearInterval(timerInterval);
 });
 </script>
 
@@ -91,6 +119,11 @@ const formattedWorkDuration = computed(() => {
           Including {{ breakDuration }} minutes break after
           {{ formattedWorkDuration }} of work
         </p>
+        <div class="mt-4 p-4 bg-blue-50 rounded-md">
+          <h3 class="text-xl font-medium text-blue-900">
+            Time Remaining: <span class="text-blue-700">{{ remainingTime }}</span>
+          </h3>
+        </div>
       </div>
     </div>
   </div>
